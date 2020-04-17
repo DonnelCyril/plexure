@@ -1,7 +1,7 @@
 ### ItineraryManager
 
 #### Constructor
-1. Dependencies are created inside the constructor, they should be passed in as arguments to the constructors.
+1. Dependencies are created inside the constructor, they should be passed in as arguments to the constructor.
 2. Validate parameters for null references and throw null reference exception accordingly.
 
 #### CalculateAirlinePrices
@@ -11,7 +11,7 @@ Use the *await* keyword and change the method signature to return *Task<IEnumera
     ```csharp
      var itinerary = await _dataStore.GetItinaryAsync(itineraryId)
     ```
-3. Use a *ConcurrentBag\<Quote>* instead of *List\<Quote>* for the quotes collections as this is being populated from multiple thread.
+3. Use a *ConcurrentBag\<Quote>* instead of *List\<Quote>* for the quotes collections as this is being populated from multiple threads.
    We could also use PLINQ here and do away with intermediary list altogether.
     ```csharp
     priceProviders
@@ -20,7 +20,7 @@ Use the *await* keyword and change the method signature to return *Task<IEnumera
     ```
    - Few things to consider here:
      - Care should be taken when executing this in an Asp.net environment. Each parallel operation will be executed in a seperate thread from the thread pool. While this would improve individual response times, the overall throughput of the system will be affected.
-     - Check if *provider.GetQuotes* is CPU bound task. Typically this will be an *async* task and *Task.WhenAll* should be used:
+     - Check if *provider.GetQuotes* is a CPU bound task. If this is an IO bound task, use *Task.WhenAll* to run the operations concurrently:
         ```csharp
         var quotesFromEachProvider = await priceProviders
             .Select(provider => provider.GetQuotes(itinerary.TicketClass, itinerary.Waypoints));
@@ -135,6 +135,7 @@ This parameter should then be passed into the *_dataStore.GetItinaryAsync* metho
 
             // The *CachingBehavior* class is registered with the MediatR pipeline.
             // It ensure that this *Handle* method is invoked before the actual message handler.
+            // For this eg: TRequest is *GetTravelAgent* and TResponse will be of type *TravelAgent*.
             public class CachingBehavior<TRequest,TResponse>
             {
                 private readonly  ICacheService _cacheService;
