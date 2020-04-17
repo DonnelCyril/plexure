@@ -12,34 +12,31 @@ namespace Plexure.Exercise1
         static async Task Main()
         {
             var resourceUris = new[] { "1", "2", "3" }.Select(id => new Uri($"http://localhost:8888/resource/{id}"));
-            var timeOutInMilliseconds = 1000;
+            var timeOutInMilliseconds = 3000;
             try
             {
                 using var cts = new CancellationTokenSource(timeOutInMilliseconds);
-                var resources = await FetchResources(resourceUris, cts.Token);
-                foreach (var result in resources.Select((r, idx) => $"Resource {idx + 1}:\n{r}\n"))
-                {
-                    Console.WriteLine(result);
-                }
-
+                var totalLengthOfResources = await GetTotalLengthOfResources(resourceUris, cts.Token);
+                Console.WriteLine($"Total length of resources: {totalLengthOfResources}");
             }
             catch (TaskCanceledException)
             {
-                Console.WriteLine($"{nameof(FetchResources)} didn't complete within {timeOutInMilliseconds / 1000.0} seconds and was cancelled.");
+                Console.WriteLine($"{nameof(GetTotalLengthOfResources)} didn't complete within {timeOutInMilliseconds / 1000.0} seconds and was cancelled.");
             }
         }
 
-        private static async Task<IEnumerable<string>> FetchResources(IEnumerable<Uri> resourceUris, CancellationToken cancellationToken = default)
+        private static async Task<long> GetTotalLengthOfResources(IEnumerable<Uri> resourceUris, CancellationToken cancellationToken = default)
         {
             var httpClient = new HttpClient();
-            var fetchResources = await Task.WhenAll(resourceUris.Select(uri => FetchResource(httpClient, uri, cancellationToken)));
-            return fetchResources;
+            var fetchResourceLengths = await Task.WhenAll(resourceUris.Select(uri => GetResourceLength(httpClient, uri, cancellationToken)));
+            return fetchResourceLengths.Sum(l => l ?? 0);
 
-            static async Task<string> FetchResource(HttpClient client, Uri resourceUri, CancellationToken cancellationToken)
+            static async Task<long?> GetResourceLength(HttpClient client, Uri resourceUri, CancellationToken cancellationToken)
             {
                 var response = await client.GetAsync(resourceUri, cancellationToken);
-                cancellationToken.ThrowIfCancellationRequested();
-                return await response.Content.ReadAsStringAsync();
+                // using HTTP GET here as was specified in the test. You can also do a HEAD request if the server support it. Sample code shown below.
+                //var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Head, resourceUri), cancellationToken);
+                return response.Content.Headers.ContentLength;
             }
         }
 
